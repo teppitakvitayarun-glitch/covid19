@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ระบบคัดกรองโควิด – โรงเรียนเทพพิทักษ์วิทยา</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Sarabun','Segoe UI',sans-serif;background:#f1f5f9;color:#1e293b}
+  .wrap{max-width:1200px;margin:0 auto;padding:16px}
+  header{background:#0f766e;color:#fff;padding:14px 16px;display:flex;
+         justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+  header h1{font-size:17px;font-weight:700}
+  .card{background:#fff;border-radius:12px;padding:20px;margin-bottom:16px;
+        box-shadow:0 1px 3px rgba(0,0,0,.1)}
+  h2{font-size:16px;margin-bottom:14px;color:#0f766e}
+  label{display:block;font-size:13px;font-weight:600;margin:10px 0 4px}
+  input,select,textarea{width:100%;padding:9px 11px;border:1px solid #cbd5e1;
+        border-radius:8px;font-size:14px;font-family:inherit}
+  button{background:#0f766e;color:#fff;border:0;padding:10px 18px;border-radius:8px;
+        font-size:14px;font-weight:600;cursor:pointer;font-family:inherit}
+  button:hover{background:#115e59}
+  button.sec{background:#64748b}
+  button.sm{padding:6px 12px;font-size:13px}
+  .tabs{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap}
+  .tabs button{background:#fff;color:#475569;border:1px solid #cbd5e1}
+  .tabs button.on{background:#0f766e;color:#fff;border-color:#0f766e}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+  .chk{display:flex;align-items:center;gap:8px;padding:7px;font-size:14px;font-weight:400}
+  .chk input{width:auto}
+  table{border-collapse:collapse;width:100%;font-size:13px}
+  th,td{border:1px solid #e2e8f0;padding:6px 8px;text-align:center;white-space:nowrap}
+  th{background:#f8fafc;position:sticky;top:0;z-index:1}
+  td.name{text-align:left;position:sticky;left:0;background:#fff;z-index:2;min-width:170px}
+  th.name{left:0;z-index:3}
+  .scroll{overflow:auto;max-height:70vh}
+  .dot{font-size:16px;cursor:pointer}
+  .msg{padding:11px;border-radius:8px;margin:10px 0;font-size:14px;display:none}
+  .ok{background:#d1fae5;color:#065f46}.err{background:#fee2e2;color:#991b1b}
+  .hide{display:none!important}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;margin-bottom:10px}
+  .res{padding:16px;border-radius:10px;text-align:center;font-size:17px;font-weight:700;margin-top:12px}
+  .green{background:#d1fae5;color:#065f46}.yellow{background:#fef3c7;color:#92400e}
+  .red{background:#fee2e2;color:#991b1b}
+  small{color:#64748b}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🏫 ระบบคัดกรองโควิด – โรงเรียนเทพพิทักษ์วิทยา</h1>
+  <div id="userBox" class="hide">
+    <span id="userInfo" style="font-size:13px"></span>
+    <button class="sm sec" onclick="logout()">ออกจากระบบ</button>
+  </div>
+</header>
+
+<div class="wrap">
+
+<!-- ========== LOGIN ========== -->
+<div id="loginPage" class="card" style="max-width:420px;margin:40px auto">
+  <h2>เข้าสู่ระบบ</h2>
+  <div id="loginMsg" class="msg"></div>
+  <label>อีเมล</label><input id="email" type="email" placeholder="student@tpk.ac.th">
+  <label>รหัสผ่าน</label><input id="password" type="password" placeholder="อย่างน้อย 6 ตัว">
+  <div id="regFields" class="hide">
+    <label>ชื่อ–สกุล</label><input id="regName" placeholder="ด.ช. สมชาย ใจดี">
+    <label>ชั้น/ห้อง</label><input id="regClass" placeholder="ม.3/1">
+  </div>
+  <div style="margin-top:16px;display:flex;gap:8px">
+    <button onclick="doLogin()" style="flex:1">เข้าสู่ระบบ</button>
+    <button class="sec" onclick="toggleReg()" style="flex:1" id="regBtn">สมัครใหม่</button>
+  </div>
+  <p style="margin-top:14px"><small>ผู้ใช้ใหม่จะได้สิทธิ์ "นักเรียน/ผู้ปกครอง" — แอดมินเป็นผู้ปรับสิทธิ์ให้ภายหลัง</small></p>
+</div>
+
+<!-- ========== APP ========== -->
+<div id="app" class="hide">
+  <div class="tabs">
+    <button id="t1" class="on" onclick="tab('form')">📝 กรอกคัดกรอง</button>
+    <button id="t2" onclick="tab('matrix')">📊 ตารางรายวัน</button>
+    <button id="t3" class="hide" onclick="tab('admin')">⚙️ จัดการระบบ</button>
+  </div>
+
+  <!-- ---------- แบบคัดกรอง ---------- -->
+  <div id="pForm">
+    <div class="card">
+      <h2>แบบคัดกรองประจำวัน <span id="today"></span></h2>
+      <div id="formMsg" class="msg"></div>
+
+      <div id="proxyBox" class="hide">
+        <label>กรอกแทนนักเรียน</label>
+        <select id="proxySel"><option value="">— ตัวเอง —</option></select>
+      </div>
+
+      <label>1) อุณหภูมิร่างกาย (°C) *</label>
+      <input id="temp" type="number" step="0.1" min="34" max="42" placeholder="36.5">
+
+      <label>2) อาการในวันนี้ (เลือกได้หลายข้อ)</label>
+      <div class="grid" id="symBox"></div>
+
+      <label>3) ประวัติเสี่ยง 14 วันย้อนหลัง</label>
+      <div class="grid" id="riskBox"></div>
+
+      <div class="grid">
+        <div>
+          <label>4) ผลตรวจ ATK</label>
+          <select id="atk">
+            <option value="none">ไม่ได้ตรวจ</option>
+            <option value="negative">ลบ (ไม่พบเชื้อ)</option>
+            <option value="positive">บวก (พบเชื้อ)</option>
+          </select>
+        </div>
+        <div>
+          <label>5) จำนวนเข็มวัคซีน</label>
+          <select id="vac"><option>0</option><option>1</option><option>2</option>
+            <option>3</option><option>4+</option></select>
+        </div>
+        <div>
+          <label>6) การเดินทางมาโรงเรียน</label>
+          <select id="travel">
+            <option>รถโรงเรียน</option><option>รถส่วนตัว</option>
+            <option>รถสาธารณะ</option><option>เดิน/จักรยาน</option>
+          </select>
+        </div>
+      </div>
+
+      <label>หมายเหตุเพิ่มเติม</label>
+      <textarea id="note" rows="2"></textarea>
+
+      <div id="resBox" class="res hide"></div>
+      <div style="margin-top:16px"><button onclick="submitForm()">✅ ส่งแบบคัดกรอง</button></div>
+    </div>
+  </div>
+
+  <!-- ---------- ตาราง Matrix ---------- -->
+  <div id="pMatrix" class="hide">
+    <div class="card">
+      <h2>ตารางผลคัดกรองรายวัน (จันทร์–ศุกร์)</h2>
+      <div class="grid" style="margin-bottom:14px">
+        <div><label>ตั้งแต่วันที่</label><input id="d1" type="date"></div>
+        <div><label>ถึงวันที่</label><input id="d2" type="date"></div>
+        <div><label>ชั้น/ห้อง</label><input id="fClass" placeholder="เว้นว่าง = ทุกห้อง"></div>
+        <div style="display:flex;align-items:flex-end;gap:8px">
+          <button onclick="loadMatrix()">แสดง</button>
+          <button class="sec" onclick="exportCSV()">CSV</button>
+        </div>
+      </div>
+      <div class="legend">
+        <span>🟢 ผ่าน</span><span>🟡 เฝ้าระวัง</span><span>🔴 ไม่ผ่าน</span><span>⬜ ยังไม่รายงาน</span>
+      </div>
+      <div class="scroll"><table id="mTable"></table></div>
+    </div>
+  </div>
+
+  <!-- ---------- จัดการระบบ ---------- -->
+  <div id="pAdmin" class="hide">
+    <div class="card">
+      <h2>จัดการสิทธิ์ผู้ใช้</h2>
+      <div id="admMsg" class="msg"></div>
+      <div class="scroll"><table id="uTable"></table></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword,
+         signOut, onAuthStateChanged }
+  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import { getFirestore, doc, setDoc, getDoc, updateDoc, collection,
+         query, where, getDocs, orderBy }
+  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+/* ===== 🔴 วาง firebaseConfig ของคุณตรงนี้ ===== */
+cconst firebaseConfig = {
+  apiKey: "AIzaSyDTre4ZQz803eCJaOgsgX3gl1h6WmkCwDU",
+  authDomain: "covid-19-5ec00.firebaseapp.com",
+  projectId: "covid-19-5ec00",
+  storageBucket: "covid-19-5ec00.firebasestorage.app",
+  messagingSenderId: "383406532215",
+  appId: "1:383406532215:web:d9d8f751d23dc6b39ec872",
+  measurementId: "G-JGVK7PKZ2S"
+};
+/* ============================================ */
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db   = getFirestore(app);
+
+const SYMPTOMS = ['ไข้','ไอ','เจ็บคอ','มีน้ำมูก','หายใจเหนื่อยหอบ',
+                  'จมูกไม่ได้กลิ่น','ลิ้นไม่รับรส','ถ่ายเหลว','ปวดกล้ามเนื้อ','ตาแดง'];
+const RISKS = ['สัมผัสใกล้ชิดผู้ติดเชื้อยืนยัน','คนในบ้านมีอาการทางเดินหายใจ',
+               'เดินทางไปพื้นที่เสี่ยง','เข้าร่วมกิจกรรมแออัด'];
+const ROLE_TH = {student:'นักเรียน/ผู้ปกครอง',teacher:'ครูประจำชั้น',
+                 staff:'เจ้าหน้าที่',admin:'แอดมิน'};
+
+let me = null, isRegMode = false;
+
+/* ---------- utils ---------- */
+const $ = id => document.getElementById(id);
+const todayStr = () => new Date().toLocaleDateString('sv-SE'); // YYYY-MM-DD
+function show(el, txt, cls){ el.textContent = txt; el.className = 'msg ' + cls;
+  el.style.display = 'block'; setTimeout(()=>el.style.display='none', 5000); }
+
+function weekdays(s, e){
+  const out = [], c = new Date(s), end = new Date(e);
+  while (c <= end){
+    const d = c.getDay();
+    if (d !== 0 && d !== 6) out.push({
+      iso: c.toLocaleDateString('sv-SE'),
+      lbl: `${c.getDate()}/${c.getMonth()+1}`,
+      dn: ['อา','จ','อ','พ','พฤ','ศ','ส'][d]
+    });
+    c.setDate(c.getDate()+1);
+  }
+  return out;
+}
+
+function evaluate({temp, symptoms, risks, atk}){
+  if (atk === 'positive') return 'red';
+  if (temp >= 37.5) return 'red';
+  if (symptoms.length >= 2) return 'red';
+  if (risks.includes(RISKS[0])) return 'red';
+  if (symptoms.length === 1 || risks.length > 0) return 'yellow';
+  return 'green';
+}
+const ICON = {green:'🟢', yellow:'🟡', red:'🔴'};
+
+/* ---------- auth ---------- */
+window.toggleReg = () => {
+  isRegMode = !isRegMode;
+  $('regFields').classList.toggle('hide', !isRegMode);
+  $('regBtn').textContent = isRegMode ? 'ยกเลิก' : 'สมัครใหม่';
+};
+
+window.doLogin = async () => {
+  const em = $('email').value.trim(), pw = $('password').value;
+  if (!em || pw.length < 6) return show($('loginMsg'),'กรอกอีเมลและรหัสผ่าน (≥6 ตัว)','err');
+  try{
+    if (isRegMode){
+      const name = $('regName').value.trim(), cls = $('regClass').value.trim();
+      if (!name) return show($('loginMsg'),'กรุณากรอกชื่อ–สกุล','err');
+      const cred = await createUserWithEmailAndPassword(auth, em, pw);
+      await setDoc(doc(db,'users',cred.user.uid),
+        { name, className: cls, email: em, role:'student', createdAt: Date.now() });
+    } else {
+      await signInWithEmailAndPassword(auth, em, pw);
+    }
+  } catch(e){ show($('loginMsg'), 'ผิดพลาด: ' + e.code, 'err'); }
+};
+
+window.logout = () => signOut(auth);
+
+onAuthStateChanged(auth, async user => {
+  if (!user){
+    $('loginPage').classList.remove('hide');
+    $('app').classList.add('hide'); $('userBox').classList.add('hide');
+    return;
+  }
+  const snap = await getDoc(doc(db,'users',user.uid));
+  me = { uid: user.uid, ...(snap.exists() ? snap.data() : {role:'student', name:user.email}) };
+  $('loginPage').classList.add('hide');
+  $('app').classList.remove('hide'); $('userBox').classList.remove('hide');
+  $('userInfo').textContent = `${me.name} · ${ROLE_TH[me.role]}${me.className ? ' · '+me.className : ''}`;
+  if (me.role === 'admin') $('t3').classList.remove('hide');
+  if (['teacher','staff','admin'].includes(me.role)) $('proxyBox').classList.remove('hide');
+  initForm(); await loadProxy();
+});
+
+/* ---------- tabs ---------- */
+window.tab = t => {
+  ['form','matrix','admin'].forEach((k,i) => {
+    $('p'+k[0].toUpperCase()+k.slice(1)).classList.toggle('hide', k !== t);
+    $('t'+(i+1)).classList.toggle('on', k === t);
+  });
+  if (t === 'matrix') loadMatrix();
+  if (t === 'admin') loadUsers();
+};
+
+/* ---------- form ---------- */
+function initForm(){
+  $('today').textContent = '– ' + new Date().toLocaleDateString('th-TH',
+    {weekday:'long', day:'numeric', month:'long', year:'numeric'});
+  $('symBox').innerHTML  = SYMPTOMS.map((s,i)=>
+    `<label class="chk"><input type="checkbox" class="sym" value="${s}">${s}</label>`).join('');
+  $('riskBox').innerHTML = RISKS.map(s=>
+    `<label class="chk"><input type="checkbox" class="risk" value="${s}">${s}</label>`).join('');
+  const t = todayStr();
+  $('d2').value = t;
+  $('d1').value = new Date(Date.now()-13*864e5).toLocaleDateString('sv-SE');
+}
+
+async function loadProxy(){
+  if (!['teacher','staff','admin'].includes(me.role)) return;
+  const qs = await getDocs(query(collection(db,'users'), where('role','==','student')));
+  const opts = ['<option value="">— ตัวเอง —</option>'];
+  qs.forEach(d => opts.push(
+    `<option value="${d.id}">${d.data().name} (${d.data().className||'-'})</option>`));
+  $('proxySel').innerHTML = opts.join('');
+}
+
+window.submitForm = async () => {
+  const temp = parseFloat($('temp').value);
+  if (!temp || temp < 34 || temp > 42)
+    return show($('formMsg'),'กรุณากรอกอุณหภูมิ 34–42 °C','err');
+
+  const symptoms = [...document.querySelectorAll('.sym:checked')].map(x=>x.value);
+  const risks    = [...document.querySelectorAll('.risk:checked')].map(x=>x.value);
+  const atk      = $('atk').value;
+  const status   = evaluate({temp, symptoms, risks, atk});
+
+  const targetUid  = $('proxySel')?.value || me.uid;
+  const targetSnap = targetUid === me.uid ? null : await getDoc(doc(db,'users',targetUid));
+  const tName = targetSnap ? targetSnap.data().name : me.name;
+  const tClass= targetSnap ? (targetSnap.data().className||'') : (me.className||'');
+
+  const date = todayStr();
+  try{
+    await setDoc(doc(db,'screenings', `${targetUid}_${date}`), {
+      uid: targetUid, name: tName, className: tClass, date,
+      temp, symptoms, risks, atk, vaccine: $('vac').value,
+      travel: $('travel').value, note: $('note').value.trim(),
+      status, submittedBy: me.name, submittedAt: Date.now()
+    });
+    const box = $('resBox');
+    box.className = 'res ' + status;
+    box.textContent = status==='green' ? '🟢 ผ่านการคัดกรอง — เข้าเรียนได้ตามปกติ'
+      : status==='yellow' ? '🟡 เฝ้าระวัง — กรุณาตรวจ ATK และแจ้งครูประจำชั้น'
+      : '🔴 ไม่ผ่าน — งดมาโรงเรียน แจ้งครูและเจ้าหน้าที่อนามัยทันที';
+    show($('formMsg'), `บันทึกสำเร็จ (${tName})`, 'ok');
+  } catch(e){ show($('formMsg'),'บันทึกไม่สำเร็จ: '+e.message,'err'); }
+};
+
+/* ---------- matrix ---------- */
+let lastRows = [], lastDays = [];
+
+window.loadMatrix = async () => {
+  const s = $('d1').value, e = $('d2').value;
+  if (!s || !e) return;
+  const days = weekdays(s, e);
+  const qs = await getDocs(query(collection(db,'screenings'),
+                where('date','>=',s), where('date','<=',e)));
+
+  const byPerson = {};
+  qs.forEach(d => {
+    const v = d.data();
+    if (me.role === 'student' && v.uid !== me.uid) return;
+    const fc = $('fClass').value.trim();
+    if (fc && v.className !== fc) return;
+    byPerson[v.uid] ??= { name:v.name, className:v.className||'-', cells:{} };
+    byPerson[v.uid].cells[v.date] = v;
+  });
+
+  const rows = Object.values(byPerson).sort((a,b)=>a.name.localeCompare(b.name,'th'));
+  lastRows = rows; lastDays = days;
+
+  let h = `<thead><tr><th class="name">ชื่อ–สกุล / ห้อง</th>` +
+    days.map(d=>`<th>${d.lbl}<br><small>${d.dn}</small></th>`).join('') +
+    `<th>รายงาน</th></tr></thead><tbody>`;
+
+  if (!rows.length) h += `<tr><td colspan="${days.length+2}">ไม่พบข้อมูลในช่วงวันที่นี้</td></tr>`;
+
+  rows.forEach(r => {
+    let n = 0;
+    h += `<tr><td class="name">${r.name}<br><small>${r.className}</small></td>`;
+    days.forEach(d => {
+      const c = r.cells[d.iso];
+      if (c){ n++; h += `<td><span class="dot" title="อุณหภูมิ ${c.temp}°C | ${c.symptoms.join(', ')||'ไม่มีอาการ'}">${ICON[c.status]}</span></td>`; }
+      else h += `<td>⬜</td>`;
+    });
+    h += `<td>${n}/${days.length}</td></tr>`;
+  });
+
+  // สรุปรายวัน
+  h += `<tr style="background:#f8fafc;font-weight:700"><td class="name">สรุป 🔴 / รายงาน</td>`;
+  days.forEach(d => {
+    const rep = rows.filter(r=>r.cells[d.iso]).length;
+    const red = rows.filter(r=>r.cells[d.iso]?.status==='red').length;
+    h += `<td>${red} / ${rep}</td>`;
+  });
+  h += `<td>–</td></tr></tbody>`;
+  $('mTable').innerHTML = h;
+};
+
+window.exportCSV = () => {
+  if (!lastRows.length) return;
+  const head = ['ชื่อ-สกุล','ห้อง', ...lastDays.map(d=>d.lbl)];
+  const body = lastRows.map(r => [r.name, r.className,
+    ...lastDays.map(d => ({green:'ผ่าน',yellow:'เฝ้าระวัง',red:'ไม่ผ่าน'}[r.cells[d.iso]?.status] || '-'))]);
+  const csv = '\uFEFF' + [head, ...body].map(r=>r.join(',')).join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv'}));
+  a.download = `screening_${$('d1').value}_${$('d2').value}.csv`;
+  a.click();
+};
+
+/* ---------- admin ---------- */
+window.loadUsers = async () => {
+  const qs = await getDocs(collection(db,'users'));
+  let h = `<thead><tr><th class="name">ชื่อ–สกุล</th><th>อีเมล</th><th>ห้อง</th><th>สิทธิ์</th></tr></thead><tbody>`;
+  qs.forEach(d => {
+    const u = d.data();
+    h += `<tr><td class="name">${u.name}</td><td>${u.email||'-'}</td><td>${u.className||'-'}</td>
+      <td><select onchange="setRole('${d.id}',this.value)">` +
+      Object.entries(ROLE_TH).map(([k,v])=>
+        `<option value="${k}" ${u.role===k?'selected':''}>${v}</option>`).join('') +
+      `</select></td></tr>`;
+  });
+  $('uTable').innerHTML = h + '</tbody>';
+};
+
+window.setRole = async (uid, role) => {
+  try { await updateDoc(doc(db,'users',uid), {role});
+        show($('admMsg'),'อัปเดตสิทธิ์เรียบร้อย','ok'); }
+  catch(e){ show($('admMsg'),'ไม่สำเร็จ: '+e.message,'err'); }
+};
+</script>
+</body>
+</html>
